@@ -6,33 +6,7 @@ $sensorData = $db->getSensorData();
 $lampStatus = $db->getLampStatus();
 $alarms = $db->getFeedingAlarms();
 $feedHistory = $db->getFeedingHistory();
-// $servername = "localhost";
-// $username = "root";
-// $password = "";
-// $dbname = "esp32_control";
 
-// // Create connection
-// $conn = new mysqli($servername, $username, $password, $dbname);
-
-// // Check connection
-// if ($conn->connect_error) {
-//     die("Connection failed: " . $conn->connect_error);
-// }
-
-// // Handle AJAX request
-// if (isset($_POST['led']) && isset($_POST['status'])) {
-//     $led = $_POST['led'];
-//     $status = $_POST['status'];
-
-//     $sql = "UPDATE led_status SET $led=$status WHERE id=1";
-//     $conn->query($sql);
-//     exit;
-// }
-
-// // Retrieve LED status
-// $sql = "SELECT * FROM led_status WHERE id=1";
-// $result = $conn->query($sql);
-// $row = $result->fetch_assoc();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -79,16 +53,13 @@ $feedHistory = $db->getFeedingHistory();
                 <div class="flex items-center justify-between">
                     <span>Current Status:</span>
                     <?php if ($lampStatus['status'] == "1"): ?>
-                        <span id="lampStatus"
-                            class="font-bold text-green-600"> Active
+                        <span id="lampStatus" class="font-bold text-green-600"> Active
                         </span>
                     <?php elseif ($lampStatus['status'] == "0"): ?>
-                        <span id="lampStatus"
-                            class="font-bold text-red-600">Inactive
+                        <span id="lampStatus" class="font-bold text-red-600">Inactive
                         </span>
                     <?php else: ?>
-                        <span id="lampStatus"
-                            class="font-bold"> Unknown
+                        <span id="lampStatus" class="font-bold"> Unknown
                         </span>
                     <?php endif; ?>
                 </div>
@@ -112,7 +83,7 @@ $feedHistory = $db->getFeedingHistory();
                         <div class="flex items-center justify-between">
                             <span><?= $alarm['alarm_name'] ?? "Alarm" ?></span>
                             <div class="flex items-center space-x-4">
-                                <input \type="time" class="border rounded-md px-2 py-1" value="<?= $alarm['alarm_time'] ?>"
+                                <input disabled id="alarm-time" type="time" class="border rounded-md px-2 py-1" value="<?= $alarm['alarm_time'] ?>"
                                     data-id="<?= $alarm['id'] ?>">
                                 <label class="switch">
                                     <input type="checkbox" <?= $alarm['is_active'] ? 'checked' : '' ?>
@@ -135,7 +106,8 @@ $feedHistory = $db->getFeedingHistory();
 
             <!-- Tambahkan tombol feed manual -->
             <div class="mt-4 flex space-x-4">
-                <button class="w-full bg-green-500 text-white py-2 rounded-md hover:bg-green-600 transition">
+                <button id="manualFeed"
+                    class="w-full bg-green-500 text-white py-2 rounded-md hover:bg-green-600 transition">
                     Feed Now (Manual)
                 </button>
                 <!-- <button class="w-full bg-yellow-500 text-white py-2 rounded-md hover:bg-yellow-600 transition">
@@ -210,6 +182,10 @@ $feedHistory = $db->getFeedingHistory();
             border-radius: 50%;
         }
 
+        input:checked+.slider {
+            background-color: #2196F3; /* Change to blue when active */
+        }
+
         input:checked+.slider:before {
             transform: translateX(26px);
         }
@@ -218,11 +194,8 @@ $feedHistory = $db->getFeedingHistory();
         document.onclick = function (event) {
             const target = event.target;
 
-            // console.log(target);
-
             // Toggle Lamp Button
             if (target.id === 'toggleLampBtn') {
-                // console.log('lamp');
                 const currentStatus = document.getElementById('lampStatus').classList.contains('text-green-600');
                 const newStatus = currentStatus ? 0 : 1;
 
@@ -268,9 +241,9 @@ $feedHistory = $db->getFeedingHistory();
                             headers: {
                                 'Content-Type': 'application/json'
                             },
-                            body: JSON.stringify({ 
+                            body: JSON.stringify({
                                 name: name,
-                                time: time 
+                                time: time
                             })
                         })
                             .then(response => response.json())
@@ -306,32 +279,33 @@ $feedHistory = $db->getFeedingHistory();
                         }
                     });
             }
+
+            
+
+            if (target.id === "manualFeed") {
+                const amount = "10";
+
+                fetch('api/manual_feed.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        amount: amount
+                    })
+                }).then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            location.reload();
+                        }
+                    })
+            }
+
+           
         };
 
-        // document.getElementById('addAlarmBtn').addEventListener('click', function () {
-        //     const container = document.getElementById('alarmContainer');
-        //     const newAlarm = document.createElement('div');
-        //     newAlarm.className = 'flex items-center justify-between';
-        //     newAlarm.innerHTML = `<span>New Alarm</span>
-        //                             <div class="flex items-center space-x-4">
-        //                                 <input
-        //                                     type="time"
-        //                                     class="border rounded-md px-2 py-1"
-        //                                     value="12:00"
-        //                                 >
-        //                                 <label class="switch">
-        //                                     <input type="checkbox" checked>
-        //                                     <span class="slider round bg-green-500"></span>
-        //                                 </label>
-        //                                 <button onclick="this.closest('div').parentElement.remove()" class="text-red-500 hover:text-red-700">
-        //                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-        //                                         <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
-        //                                     </svg>
-        //                                 </button>
-        //                             </div>
-        //                         `;
-        //     container.appendChild(newAlarm);
-        // });
+        
+        
     </script>
 </body>
 
